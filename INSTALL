@@ -1,0 +1,18 @@
+# INSTALL
+
+Just run 'make'. The binary is installed in <path/to/source>/bin.
+
+Usage:
+  > ./bn-to-cnf -i <HUGIN *.net FILE> [option] [...]
+
+  Options:
+     -c: Constraints are supressed
+     -e: Equal probabilities is encoded
+     -d: Determinism is encoded
+     -s: Symplify encoding
+     -i: Input file
+     -w: Write CNF in DIMACS format to file
+     -p: Print stats to stdout
+     -h: Help
+
+

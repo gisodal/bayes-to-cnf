@@ -1,0 +1,13 @@
+# INSTALL
+
+Just run 'make'. The binary is installed in <path/to/source>/bin.
+For other make options type 'make help'.
+
+to run type:
+
+  > bin/quine-mccluskey -v <#variables> -o [model1 [, model2 [, ...] ] ]
+
+example:
+
+  > bin/quine-mccluskey -v 3 -o 1,3,5
+  ((a ∧ ¬c)  ∨  (a ∧ ¬b))

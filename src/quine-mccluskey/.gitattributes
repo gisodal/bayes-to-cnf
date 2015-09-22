@@ -1,0 +1,4 @@
+debug merge=ours
+pylibs merge=ours
+README.md merge=ours
+INSTALL merge=ours
