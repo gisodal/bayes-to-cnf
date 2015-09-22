@@ -87,10 +87,9 @@ void cnf::clear(){
 
     LITERALS = 0;
     VARIABLES = 0;
-    OPT_SUPRESS_CONSTRAINTS = false;
+    OPT_SUPPRESS_CONSTRAINTS = false;
     OPT_EQUAL_PROBABILITIES = false;
     OPT_DETERMINISTIC_PROBABILITIES = false;
-    OPT_DETERMINISM = false;
     OPT_SYMPLIFY = false;
     OPT_QUINE_MCCLUSKEY = false;
     OPT_BOOL = false;
@@ -194,94 +193,72 @@ int cnf::read(char *name){
     return 0;
 }
 
-int cnf::write(char* basename, bool dimacs, bayesnet *bn){
+int cnf::write(char* basename, bayesnet *bn){
     char name[100];
     strcpy(name, basename);
-    if(!dimacs)
-        sprintf(name+strlen(name), ".%u", encoding);
-
     sprintf(name+strlen(name),".cnf");
-    printf("output: %s\n", name);
+    printf("\nDIMACS CNF written to: %s\n\n", name);
     FILE *file = fopen(name,"w");
     if(file){
-        if(dimacs){
-            fprintf(file, "c DIMACS CNF Format\n");
-            fprintf(file, "c ===================================================\n");
-            unsigned int counter = 0;
-            for(unsigned int i = 0; i < expr.clauses.size(); i++)
-                if(!OPT_SYMPLIFY || get_weight(i) != 1)
-                    counter++;
+        fprintf(file, "c DIMACS CNF Format\n");
 
-            fprintf(file, "p cnf %u %u\n", LITERALS+probability_to_weight.size(), counter);
-            bool removed = false;
-            for(unsigned int i = 0; i < expr.clauses.size(); i++){
-                if(!OPT_SYMPLIFY || get_weight(i) != 1){
-                    clause &c = expr.clauses[i];
-                    for(unsigned int j = 0; j < c.literals.size(); j++)
-                        fprintf(file, "%d ", c.literals[j]);
+        fprintf(file, "c\n");
+        fprintf(file, "c Input: %s.net\nc\n",get_basename(basename));
+        stats(file);
+        fprintf(file, "c\n");
+        fprintf(file, "c ===================================================\n");
+        unsigned int counter = 0;
+        for(unsigned int i = 0; i < expr.clauses.size(); i++)
+            if(!OPT_SYMPLIFY || get_weight(i) != 1)
+                counter++;
 
-                    if(get_weight(i) != -1 && (!OPT_SYMPLIFY || get_weight(i) != 0))
-                        fprintf(file, "%u ", LITERALS+1+clause_to_probability[i]);
-
-                    fprintf(file,"0\n");
-                } else removed = true;
-            }
-
-            fprintf(file, "c ===================================================\n");
-            fprintf(file, "c\n");
-            fprintf(file, "c clauses       : %-6u\n", expr.clauses.size());
-            fprintf(file, "c literals      : %-6u (1-%u)\n", LITERALS,LITERALS);
-            fprintf(file, "c probabilities : %-6u (%u-%u)\n", probability_to_weight.size(), LITERALS+1, LITERALS+probability_to_weight.size());
-            fprintf(file, "c\n");
-            fprintf(file, "c probabilities:\n");
-            for(unsigned int i = 0; i < probability_to_weight.size(); i++)
-                fprintf(file, "c %u %f\n", LITERALS+1+i, probability_to_weight[i]);
-
-            fprintf(file, "c\nc variable to literal mapping:\n");
-            for(unsigned int v = 0; v < VARIABLES; v++){
-                fprintf(file, "c %u = {",v);
-                for(unsigned int l = 0; l < values[v]; l++){
-                    if(l > 0) fprintf(file,",");
-                    fprintf(file, "%u",variable_to_literal[v]+l);
-                }
-                fprintf(file,"}\n");
-            }
-
-            if(bn){
-                fprintf(file, "c\nc variable and value names:\n");
-                fprintf(file, "c  <variable> <#values> <variable name>\n");
-                fprintf(file, "c     <value literal> <value name>\n");
-                fprintf(file, "c    [<value literal> <value name>]\n");
-                for(unsigned int v = 0; v < VARIABLES; v++){
-                    fprintf(file, "c %u %u \"%s\"\n", v, values[v], bn->get_node_name(v).c_str());
-                    for(unsigned int l = 0; l < values[v]; l++)
-                        fprintf(file, "c   %u \"%s\"\n", variable_to_literal[v]+l, bn->get_node_value_name(v,l).c_str());
-                }
-            }
-
-        } else {
-            for(unsigned int v = 0; v < VARIABLES; v++){
-                fprintf(file, "%u>", v);
-                if(OPT_BOOL && values[v] == 2){
-                    fprintf(file, "%u\n", variable_to_literal[v]);
-                } else {
-                    for(unsigned int l = 0; l < values[v]; l++){
-                        if(l > 0)
-                            fprintf(file, ",");
-                        fprintf(file, "%u", variable_to_literal[v]+l);
-                    }
-                    fprintf(file, "\n");
-                }
-            }
-            for(unsigned int i = 0; i < expr.clauses.size(); i++){
+        fprintf(file, "p cnf %u %u\n", LITERALS+probability_to_weight.size(), counter);
+        bool removed = false;
+        for(unsigned int i = 0; i < expr.clauses.size(); i++){
+            if(!OPT_SYMPLIFY || get_weight(i) != 1){
                 clause &c = expr.clauses[i];
-                fprintf(file, "%u:", clause_to_variable[i]);
-                for(unsigned int j = 0; j < c.literals.size(); j++){
-                    if(j > 0)
-                        fprintf(file, ",");
-                    fprintf(file, "%d", c.literals[j]);
-                }
-                fprintf(file, ":%u:%f\n", clause_to_probability[i], probability_to_weight[clause_to_probability[i]]);
+                for(unsigned int j = 0; j < c.literals.size(); j++)
+                    fprintf(file, "%d ", c.literals[j]);
+
+                if(get_weight(i) != -1 && (!OPT_SYMPLIFY || get_weight(i) != 0))
+                    fprintf(file, "%u ", LITERALS+1+clause_to_probability[i]);
+
+                fprintf(file,"0\n");
+            } else removed = true;
+        }
+
+        fprintf(file, "c ===================================================\n");
+        //fprintf(file, "c clauses       : %-6u\n", expr.clauses.size());
+        //fprintf(file, "c literals      : %-6u (1-%u)\n", LITERALS,LITERALS);
+        //fprintf(file, "c probabilities : %-6u (%u-%u)\n", probability_to_weight.size(), LITERALS+1, LITERALS+probability_to_weight.size());
+        fprintf(file, "c\n");
+        fprintf(file, "c literal-to-weight mapping:\n");
+        fprintf(file, "c     1-%u = 1\n",LITERALS);
+        for(unsigned int i = 0; i < probability_to_weight.size(); i++)
+            fprintf(file, "c     %u = %f\n", LITERALS+1+i, probability_to_weight[i]);
+
+
+        fprintf(file, "c\nc variable-to-literal mapping:\n");
+        for(unsigned int v = 0; v < VARIABLES; v++){
+            fprintf(file, "c     %u = {",v);
+            for(unsigned int l = 0; l < values[v]; l++){
+                if(l > 0) fprintf(file,",");
+                fprintf(file, "%u",variable_to_literal[v]+l);
+                if(OPT_BOOL && values[v] == 2)
+                    break;
+            }
+            fprintf(file,"}\n");
+        }
+
+        if(bn){
+            fprintf(file, "c\nc variable-and-values-to-names mapping:\n");
+            fprintf(file, "c     <variable> <nr of values> <variable name>\n");
+            fprintf(file, "c          <value literal> <value name>\n");
+            fprintf(file, "c         [<value literal> <value name>]\nc\n");
+            for(unsigned int v = 0; v < VARIABLES; v++){
+                fprintf(file, "c     %u %u \"%s\"\n", v, values[v], bn->get_node_name(v).c_str());
+                for(unsigned int l = 0; l < values[v]; l++)
+                    fprintf(file, "c         %u \"%s\"\n", variable_to_literal[v]+l, bn->get_node_value_name(v,l).c_str());
             }
         }
         fclose(file);
@@ -289,7 +266,28 @@ int cnf::write(char* basename, bool dimacs, bayesnet *bn){
     return 0;
 }
 
-void cnf::stats(){
+void cnf::stats(FILE *file){
+    char prefix[10] = {0};
+    if(file != stdout)
+        strcpy(prefix, "c     ");
+
+    fprintf(file,"%sOptimizations:\n",prefix);
+    fprintf(file,"%s    Suppress constraints : %s\n", prefix, (OPT_SUPPRESS_CONSTRAINTS?"YES":"NO") );
+    fprintf(file,"%s    Boolean recognition  : %s\n", prefix, (OPT_BOOL?"YES":"NO"));
+    fprintf(file,"%s    Equal probabilities  : %s\n", prefix, (OPT_EQUAL_PROBABILITIES?"YES":"NO") );
+    fprintf(file,"%s    Quine-McCluskey      : %s  ", prefix, (OPT_QUINE_MCCLUSKEY?"YES":"NO"));
+    if(QM_LIMIT >= 0)
+        fprintf(file," (limit %d)", QM_LIMIT);
+    fprintf(file,"\n");
+    fprintf(file,"%s    Determinism          : %s\n", prefix, (OPT_DETERMINISTIC_PROBABILITIES?"YES":"NO") );
+    fprintf(file,"%s    Simplify             : %s\n", prefix, (OPT_SYMPLIFY?"YES":"NO") );
+
+    fprintf(file,"%s\n",prefix,prefix);
+    fprintf(file,"%sVariables       : %d\n", prefix, VARIABLES);
+    fprintf(file,"%sProbabilities   : %d\n", prefix, probability_to_weight.size());
+    fprintf(file,"%sLiterals        : %d\n", prefix, LITERALS);
+    fprintf(file,"%sClauses         : %d\n", prefix, expr.clauses.size());
+
     int max = 0;
     int min = -1;
     unsigned long int total = 0;
@@ -306,18 +304,8 @@ void cnf::stats(){
     for(auto it = expr.clauses.begin(); it != expr.clauses.end(); it++)
         sizes[it->literals.size()]++;
 
-    printf("Optimizations\n");
-    printf("    Suppress constraints : %s\n", (OPT_SUPRESS_CONSTRAINTS?"YES":"NO") );
-    printf("    Equal probabilities  : %s\n", (OPT_EQUAL_PROBABILITIES?"YES":"NO") );
-    printf("    Determinism          : %s\n", (OPT_DETERMINISM?"YES":"NO") );
-    printf("    Simplify             : %s\n", (OPT_SYMPLIFY?"YES":"NO") );
-    printf("\n");
-    printf("Variables       : %d\n", VARIABLES);
-    printf("Probabilities   : %d\n", probability_to_weight.size());
-    printf("Literals        : %d\n", LITERALS);
-    printf("Clauses         : %d\n", expr.clauses.size());
-    printf("Literal/clauses : %.2f \n", (float) total/expr.clauses.size());
-    printf("Clause sizes    : %d-%d\n", min, max);
+    fprintf(file,"%sLiteral/clauses : %.2f \n", prefix, (float) total/expr.clauses.size());
+    fprintf(file,"%sClause sizes    : %d-%d\n", prefix, min, max);
     //printf("clauses/size    : ");
     //for(unsigned int i = 1; i <= max; i++)
     //    printf("%5d ", sizes[i]);
@@ -325,26 +313,6 @@ void cnf::stats(){
     //for(unsigned int i = 1; i <= max; i++)
     //    printf("%5d ", i);
     //printf("\n\n");
-
-    if(qm_possible){
-        char dfilename[200];
-        if(OPT_BOOL)
-            sprintf(dfilename,"%s.bool.qm",filename);
-        else
-            sprintf(dfilename,"%s.qm",filename);
-
-        FILE *file = fopen(dfilename,"w");
-        if(file){
-            fprintf(file,"# clause_size,clauses_count,sum_clause_count\n");
-            unsigned sum = 0;
-            for(unsigned int i = 0; i < qm_variable_count.size(); i++){
-                sum += qm_variable_count[i];
-                fprintf(file,"%u,%u,%u\n",i, qm_variable_count[i], sum);
-            }
-            fclose(file);
-        }
-    }
-
 
     //printf("#file,encoding,bool,qm_limit,variables,probabilities,literals,clauses,literal/clauses,clause_min_size,clause_max_size");
     //printf("\n");
@@ -360,6 +328,17 @@ void cnf::stats(){
     //printf("LC%.4f,", (float) total/expr.clauses.size());
     //printf("%d,%d,", min, max);
     //printf("\n");
+}
+
+void cnf::apply_optimization(){
+    if(OPT_EQUAL_PROBABILITIES)
+        encode_equal_probabilities();
+
+    if(OPT_DETERMINISTIC_PROBABILITIES)
+        encode_deterministic_probabilities();
+
+    if(OPT_SYMPLIFY)
+        encode_determinism();
 }
 
 int cnf::encode(bayesnet *bn){
@@ -395,8 +374,7 @@ int cnf::encode(bayesnet *bn){
 
     switch(encoding){
         case 0:
-            encode_constraints(bn);
-            break;
+            encode_constraints(bn); // note missing break;
         case 1:
             encode_probabilities(bn);
             break;
@@ -405,17 +383,16 @@ int cnf::encode(bayesnet *bn){
             return 1;
     }
 
-    if(OPT_EQUAL_PROBABILITIES)
-        encode_equal_probabilities();
+    apply_optimization();
 
-    if(OPT_DETERMINISTIC_PROBABILITIES)
-        encode_deterministic_probabilities();
-
-    if(OPT_DETERMINISM)
-        encode_determinism();
-
-    if(OPT_QUINE_MCCLUSKEY)
-        ;
+    if(OPT_QUINE_MCCLUSKEY){
+        encode_prime(bn);
+        if(!OPT_SUPPRESS_CONSTRAINTS){
+            set_encoding(0);
+            encode_constraints(bn);
+            apply_optimization();
+        }
+    }
 
     if(expr.clauses.size() == 0)
         clear();
@@ -441,13 +418,8 @@ void cnf::encode_constraints(bayesnet *bn){
         clause_t &c = expr.clauses.back();
         clause_to_variable.push_back(i);
         clause_to_probability.push_back(-1);
-        for(unsigned int v = 0; v < bn->states[i]; v++){
-            uint32_t lid = v_to_l(i,v);
-            c.literals.push_back(lid);
-
-            //literal_t &l = expr.literals[lid];
-           //l.clauses.push_back(cid);
-        }
+        for(unsigned int v = 0; v < bn->states[i]; v++)
+            c.literals.push_back(v_to_l(i,v));
     }
 
     // constraint encoding
@@ -459,38 +431,16 @@ void cnf::encode_constraints(bayesnet *bn){
         uint32_t literal_base = v_to_l(i,0);
         for(unsigned int v = 0; v < values-1; v++){
             for(unsigned int vv = v+1; vv < values; vv++){
-                unsigned int cid = expr.clauses.size();
-                expr.clauses.resize(cid+1);
+                expr.clauses.resize(expr.clauses.size()+1);
                 clause &c = expr.clauses.back();
                 clause_to_variable.push_back(i);
                 clause_to_probability.push_back(-1);
 
                 c.literals.push_back(-1*(literal_base+v));
                 c.literals.push_back(-1*(literal_base+vv));
-
-               // clause_to_probability.push_back(1);
-
-               // c.negated.push_back(true);
-               // c.literals.push_back(literal_base+v);
-               // literal_t &l = expr.literals[literal_base+v];
-               // l.negated.push_back(true);
-               // l.clauses.push_back(cid);
-
-               // c.negated.push_back(true);
-               // c.literals.push_back(literal_base+vv);
-               // literal_t &l2 = expr.literals[literal_base+vv];
-               // l2.negated.push_back(true);
-               // l2.clauses.push_back(cid);
             }
         }
     }
-
-    // all constraints have weight 0
-    //for(unsigned int i = 0; i < clause_to_probability.size(); i++)
-    //    probability_to_weight.push_back(0);
-
-    // probability encoding
-    encode_probabilities(bn);
 }
 
 void cnf::encode_probabilities(bayesnet *bn){
@@ -667,7 +617,7 @@ template <class T>
 void cnf::reduce(std::vector< uint32_t > &clauses, std::vector<clause> &nclauses, std::map<uint32_t,uint32_t> &l_to_i, uint32_t p, uint32_t v){
     qm<T> q;
 
-    // variables
+    // craeate variables to literal mapping
     std::map <unsigned int, std::vector <unsigned int> > v_to_l;
     for(auto mlit = l_to_i.begin(); mlit != l_to_i.end(); mlit++){
         q.add_variable(mlit->first, mlit->second);
@@ -680,7 +630,7 @@ void cnf::reduce(std::vector< uint32_t > &clauses, std::vector<clause> &nclauses
         std::vector <unsigned int> &literals = vit->second;
 
         if(literals.size() > 1){
-            // variables constraint
+            // variable clauses
             {
                 constraints.resize(constraints.size()+1);
                 cube<T> &m = constraints.back();
@@ -690,7 +640,7 @@ void cnf::reduce(std::vector< uint32_t > &clauses, std::vector<clause> &nclauses
                     m[1].clear(l_to_i[literals[i]]);
             }
 
-            // mutual exclusive values
+            // constraint clauses
             for(unsigned int l1 = 0; l1 < literals.size()-1; l1++){
                 for(unsigned int l2 = l1+1; l2 < literals.size(); l2++){
                     constraints.resize(constraints.size()+1);
@@ -721,7 +671,7 @@ void cnf::reduce(std::vector< uint32_t > &clauses, std::vector<clause> &nclauses
         model[1].set_lsb(l_to_i.size());
         clause_t &clause = expr.clauses[*cit];
         for(unsigned int i = 0; i < clause.literals.size(); i++){
-            unsigned int idx = l_to_i[clause.literals[i]];
+            unsigned int idx = l_to_i[abs(clause.literals[i])];
             model[1].clear(idx);
             if(signbit(clause.literals[i]))
                 model[0].set(idx);
@@ -729,23 +679,15 @@ void cnf::reduce(std::vector< uint32_t > &clauses, std::vector<clause> &nclauses
         q.add_model(model);
     }
 
-    //FILE *file = fopen("output","a");
-    //fprintf(file,"-v%d -o", q.variables.size());
-    //for(auto it = q.models.begin(); it != q.models.end(); it++){
-    //    if(it != q.models.begin())
-    //        fprintf(file, ",");
-    //    fprintf(file,"%lu", *it);
-    //}
-    //fprintf(file,"\n");
-    //fclose(file);
-
+    // perform Quine-McCluskey
     q.solve();
 
     // remove constraint clauses
+    // ASSUMPTION: constraint clauses haven't been added before calling this function
     for(auto it = constraints.begin(); it != constraints.end(); it++)
         q.remove_prime(*it);
 
-    printf("function size: %u -> %u\n", clauses.size(), q.get_primes_size());
+    printf("    #clauses reduced from %d to %d!\n", clauses.size(), q.get_primes_size());
     if(clauses.size() < q.get_primes_size())
         fprintf(stderr, "ERROR: nr of clauses increased!!\n");
     //printf("primes %d: ", q.primes.size());
@@ -761,60 +703,91 @@ void cnf::reduce(std::vector< uint32_t > &clauses, std::vector<clause> &nclauses
         q.get_clause(l, i);
         for(unsigned int j = 0; j < l.size(); j++)
             l[j] = -1*l[j];
-
-        clause_to_probability[offset+i] = p;
-        clause_to_variable[offset+i] = v; // FIXME check if memory is not corrupted
     }
 }
 
 void cnf::encode_prime(bayesnet *bn){
-    encode_probabilities(bn);
-    encode_equal_probabilities();
-    encode_deterministic_probabilities();
-
-
     if(expr.clauses.size() > 0){
         qm_variable_count.clear();
         qm_eligible = 0;
         qm_possible = 0;
-        unsigned int offset = 0;
         std::vector<clause> nclauses;
+        std::vector<int32_t> nclause_to_probability;
+        std::vector<uint32_t> nclause_to_variable;
+
+        map<unsigned int, vector<uint32_t> > variable_to_clause;
+        for(unsigned int c = 0; c < clause_to_variable.size(); c++)
+            variable_to_clause[clause_to_variable[c]].push_back(c);
 
         for(unsigned int v = 0; v < VARIABLES; v++){
-            unsigned int CLAUSES = bn->get_states(v);
-            for(unsigned int p = 0; p < bn->get_parent_size(v); p++)
-                CLAUSES *= bn->get_states(bn->get_parent(v)[p]);
 
-            map< uint32_t, vector<uint32_t> > probability_to_clause;
-            for(unsigned int c = 0; c < CLAUSES; c++)
-                probability_to_clause[clause_to_probability[offset+c]].push_back(offset+c);
+            // per variable, group clauses with equal symbolic weight
+            map< int, vector<uint32_t> > probability_to_clause;
+            for(unsigned int c = 0; c < variable_to_clause[v].size(); c++){
+                unsigned int clausenr = variable_to_clause[v][c];
+                probability_to_clause[clause_to_probability[clausenr]].push_back(clausenr);
+            }
 
+            // per group of clauses apply quine-mccluskey
             for(auto mit = probability_to_clause.begin(); mit != probability_to_clause.end(); mit++){
                 vector<uint32_t> &clauses = mit->second;
+
+                // map literals in clause groups to [0-...] range
                 map <uint32_t, uint32_t> l_to_i;
                 for(auto cit = clauses.begin(); cit != clauses.end(); cit++){
                     clause_t &clause = expr.clauses[*cit];
                     for(auto lit = clause.literals.begin(); lit != clause.literals.end(); lit++){
-                        if(l_to_i.find(*lit) == l_to_i.end())
-                            l_to_i[*lit] = l_to_i.size()-1;
+                        if(l_to_i.find(abs(*lit)) == l_to_i.end())
+                            l_to_i[abs(*lit)] = l_to_i.size()-1;
                     }
                 }
-                printf("(%u/%u) probability: %-3d variables: %-3d clauses: %-3d\n", v, VARIABLES, mit->first, l_to_i.size(), mit->second.size());
-                // stats ----
+
+                // print current clause group
+                printf("(%u/%u) weight: ", v, VARIABLES);
+                if(mit->first==-1)
+                    printf("NONE  probability: NONE   ");
+                else printf("%-4d  probability: %-.3f  ", LITERALS+1+mit->first, probability_to_weight[mit->first]);
+                printf("literals: %-4d  clauses: %-4d\n", l_to_i.size(), mit->second.size());
+
+                // print participating clauses
+                //for(unsigned int k = 0; k < clauses.size(); k++){
+                //    int i = clauses[k];
+                //    printf("   %3u: v%-4u ", i, clause_to_variable[i]);
+                //    if(get_weight(i) == -1)
+                //        printf("NONE  ");
+                //    else
+                //        printf("p%-4d ",LITERALS+1+clause_to_probability[i]);
+                //    printf("(%-.3f): ", get_weight(i));
+                //    for(unsigned int j = 0; j < expr.clauses[i].literals.size(); j++){
+                //        if(!signbit(expr.clauses[i].literals[j]))
+                //            printf(" %-3d ", expr.clauses[i].literals[j]);
+                //        else
+                //            printf("%-4d ", expr.clauses[i].literals[j]);
+                //    }
+                //    printf("\n");
+                //}
+
+                unsigned int offset = nclauses.size();
+                unsigned int CLAUSES = clauses.size();
+                nclause_to_probability.resize(offset+CLAUSES);
+                nclause_to_variable.resize(offset+CLAUSES);
+                for(unsigned int i = 0; i < CLAUSES; i++){
+                    nclause_to_probability[offset+i] = mit->first;
+                    nclause_to_variable[offset+i] = v;
+                }
+
+                // perform Quine-McCluskey on clause group
                 if(clauses.size() > 1){
                     dynamic_assign(qm_variable_count, l_to_i.size())++;
                     qm_possible++;
-                    // FIXME: we don't attempt quine-mccluskey when nr of variables is too big
                     #if __LP64__
                     if((QM_LIMIT > 0 && l_to_i.size() > QM_LIMIT) || l_to_i.size() > 128){
                     #else
                     if((QM_LIMIT > 0 && l_to_i.size() > QM_LIMIT) || l_to_i.size() > 64){
                     #endif
                         printf("  SKIPPED\n");
-                    //if(l_to_i.size() > 32){
-                        unsigned int offset = nclauses.size();
-                        nclauses.resize(offset+clauses.size());
-                        for(unsigned int i = 0; i < clauses.size(); i++)
+                        nclauses.resize(offset+CLAUSES);
+                        for(unsigned int i = 0; i < CLAUSES; i++)
                             nclauses[offset+i] = expr.clauses[clauses[i]];
                     } else {
                         qm_eligible++;
@@ -828,20 +801,14 @@ void cnf::encode_prime(bayesnet *bn){
                         #endif
                     }
                 } else if(clauses.size() == 1) {
-                    unsigned int idx = nclauses.size();
-                    nclauses.resize(idx+1);
-                    nclauses[idx] = expr.clauses[clauses[0]];
-                    clause_to_probability[idx] = mit->first;
-                    clause_to_variable[idx] = v;
+                    nclauses.resize(offset+1);
+                    nclauses[offset] = expr.clauses[clauses[0]];
                 }
             }
-            offset += CLAUSES;
         }
-        clause_to_variable.resize(nclauses.size());
-        clause_to_probability.resize(nclauses.size());
+        clause_to_variable = nclause_to_variable;
+        clause_to_probability = nclause_to_probability;
         expr.clauses = nclauses;
-
-        //fix_literal_implications();
     }
 }
 
@@ -855,20 +822,31 @@ void cnf::set_qm_limit(int max){
 
 void cnf::set_optimization(opt_t opt){
     switch(opt){
-        case EQUAL_PROBABILITIES:         OPT_EQUAL_PROBABILITIES = true;         break;
-        case DETERMINISM:                 OPT_DETERMINISM = true; // note absence of break...
-        case DETERMINISTIC_PROBABILITIES: OPT_DETERMINISTIC_PROBABILITIES = true; break;
-        case SYMPLIFY:                    OPT_SYMPLIFY = true;                    break;
-        case QUINE_MCCLUSKEY:             OPT_QUINE_MCCLUSKEY = true;             break;
-        case BOOL:                        OPT_BOOL = true;                        break;
-        case SUPRESS_CONSTRAINTS:
-            OPT_SUPRESS_CONSTRAINTS = true;
+        case EQUAL_PROBABILITIES:
+            OPT_EQUAL_PROBABILITIES = true;
+            break;
+        case DETERMINISTIC_PROBABILITIES:
+            OPT_DETERMINISTIC_PROBABILITIES = true;
+            break;
+        case SYMPLIFY:
+            OPT_DETERMINISTIC_PROBABILITIES = true;
+            OPT_SYMPLIFY = true;
+            break;
+        case QUINE_MCCLUSKEY:
+            OPT_QUINE_MCCLUSKEY = true;
+            OPT_EQUAL_PROBABILITIES = true;
+            set_encoding(1);
+            break;
+        case BOOL:
+            OPT_BOOL = true;
+            break;
+        case SUPPRESS_CONSTRAINTS:
+            OPT_SUPPRESS_CONSTRAINTS = true;
             set_encoding(1);
             break;
         default:
             break;
     }
-
 }
 
 void cnf::set_encoding(int encoding){
@@ -912,11 +890,15 @@ void cnf::print(){
     }
 
     for(unsigned int i = 0; i < expr.clauses.size(); i++){
-        printf(" %3u: p%-4d v%-4u %f: ", i, clause_to_probability[i], clause_to_variable[i], get_weight(i));
+        printf(" %3u: p%-4d v%-4u ", i, clause_to_probability[i], clause_to_variable[i]);
+        if(get_weight(i) == -1)
+            printf(" NONE: ");
+        else printf("%.3f: ", get_weight(i));
+
         for(unsigned int j = 0; j < expr.clauses[i].literals.size(); j++){
             bool pauze = !signbit(expr.clauses[i].literals[j]);
             if(pauze) printf(" ");
-            if(!expr.clauses[i].sat[j]){
+            if(expr.clauses[i].sat.size() == 0 || !expr.clauses[i].sat[j]){
                 if(pauze) printf("%-3d ", expr.clauses[i].literals[j]);
                 else printf("%-4d ", expr.clauses[i].literals[j]);
 

@@ -1,34 +1,31 @@
-# bn-to-cnf
-Encode Bayesian Network into Conjunctive Normal Form.
+# bayes-to-cnf
+Encode Bayesian Networks into Conjunctive Normal Form and write it to output file in DIMACS format.
 
 ## Synopsis
-This program changes This is an implementation of the Quine-McCluskey algorithm, which produces prime implicants in sum-of-product (SOP) form. Patrick's method is used to obtain the canonical SOP form.
+The program takes a HUGIN encoded Bayesian Network as input and encodes it into Conjunctive Normal Form with various optimizations, e.g., prime implicates, context-specific independence, determinism, etc.
 
 ## Usage
-The program takes as i
-  > ./bn-to-cnf -i <HUGIN FILE> [option] [...]
+  > ./bn-to-cnf -i \<HUGIN FILE\> [option] [...]
 
-  Options:
-     -c: Constraints are supressed
-     -e: Equal probabilities is encoded
-     -d: Determinism is encoded
-     -s: Symplify encoding
-     -i: Input file
-     -w: Write CNF in DIMACS format to file
-     -p: Print stats to stdout
-     -h: Help
+| Option | Optimization |
+| --- |--- |
+| -c| Constraints are suppressed|
+| -e| Equal probabilities are encoded|
+| -d| Determinism are encoded|
+| -s| Symplify encoding|
+| -b| Boolean variables are not mapped|
+| -q| Quine-McCluskey (QM)|
+| -l \<limit\>| Limit problem size for QM|
 
-
-For example:
-> bin/quine-mccluskey -v3 -o0,2,5,7
-
-((¬a ∧ ¬c)  ∨  (a ∧ c))
+| Option | Other |
+| --- | --- |
+| -i \<filename\>| Input (HUGIN .net file)|
+| -w| Write CNF in DIMACS format to file|
+| -p| Print stats to stdout|
+| -h| Help|
 
 ## Installation
 
 Just type:
 > make
-
-for other option, type:
-> make help
 

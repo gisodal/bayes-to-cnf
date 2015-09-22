@@ -14,7 +14,9 @@ all:
 
 debug:
 	make -C $(QM) debug-static debug
+	make -C $(QM) install-static install-include install-bin
 	make -C $(BNTCNF) debug-static debug
+	make -C $(BNTCNF) install-static install-include install-bin
 
 install:
 	make -C $(QM) install-static install-include install-bin

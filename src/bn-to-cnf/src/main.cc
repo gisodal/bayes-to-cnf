@@ -1,22 +1,36 @@
 #include <stdio.h>
 #include <string>
 #include <unistd.h>
+#include <ctype.h>
 #include "parser.h"
 #include "bayesnet.h"
 #include "cnf.h"
 #include "misc.h"
 
+int isnumber (const char * s){
+    if (s == NULL || *s == '\0' || isspace(*s))
+      return 0;
+    char * p;
+    strtod (s, &p);
+    return *p == '\0';
+}
+
 void help(){
     fprintf(stderr, "\nUsage:\n   ./bn-to-cnf -i <filename> [option] [...]\n\n");
     fprintf(stderr, "   Options:\n");
-    fprintf(stderr, "      -c: Constraints are supressed\n");
-    fprintf(stderr, "      -e: Equal probabilities is encoded\n");
-    fprintf(stderr, "      -d: Determinism is encoded\n");
-    fprintf(stderr, "      -s: Symplify encoding\n");
-    fprintf(stderr, "      -i: Input file\n");
-    fprintf(stderr, "      -w: Write CNF in DIMACS format to file\n");
-    fprintf(stderr, "      -p: Print stats to stdout\n");
-    fprintf(stderr, "      -h: Help\n");
+    fprintf(stderr, "      optimizations:\n");
+    fprintf(stderr, "         -c: Constraints are supressed\n");
+    fprintf(stderr, "         -e: Equal probabilities is encoded\n");
+    fprintf(stderr, "         -d: Determinism is encoded\n");
+    fprintf(stderr, "         -s: Symplify encoding\n");
+    fprintf(stderr, "         -b: Boolean variables are not mapped\n");
+    fprintf(stderr, "         -q: Quine-McCluskey (QM)\n");
+    fprintf(stderr, "         -l <limit>: Limit problem size for QM\n");
+    fprintf(stderr, "      other:\n");
+    fprintf(stderr, "         -i <filename>: Input (HUGIN .net file)\n");
+    fprintf(stderr, "         -w: Write CNF in DIMACS format to file\n");
+    fprintf(stderr, "         -p: Print stats to stdout\n");
+    fprintf(stderr, "         -h: Help\n");
 }
 
 int main(int argc, char **argv){
@@ -28,22 +42,33 @@ int main(int argc, char **argv){
 
     char *opt;
     bool write = false, stats = false;
-    while ((c = getopt(argc, argv, "i:decswbhp")) != -1){
+    while ((c = getopt(argc, argv, "i:decswbhpql:")) != -1){
         switch (c){
             case 'd': // determinism
-                f.set_optimization(cnf::opt_t::DETERMINISM);
+                f.set_optimization(cnf::opt_t::DETERMINISTIC_PROBABILITIES);
                 break;
             case 'e': // equal probabilities recoginized
                 f.set_optimization(cnf::opt_t::EQUAL_PROBABILITIES);
                 break;
             case 'c': // constraint clauses are suppressed
-                f.set_optimization(cnf::opt_t::SUPRESS_CONSTRAINTS);
+                f.set_optimization(cnf::opt_t::SUPPRESS_CONSTRAINTS);
                 break;
             case 'b': // bool variables are not mapped
                 f.set_optimization(cnf::opt_t::BOOL);
                 break;
-            case 's': // bool variables are not mapped
+            case 's': // symplify cnf using identity property
                 f.set_optimization(cnf::opt_t::SYMPLIFY);
+                break;
+            case 'q': // bool variables are not mapped
+                f.set_optimization(cnf::opt_t::QUINE_MCCLUSKEY);
+                break;
+            case 'l': // bool variables are not mapped
+                if(isnumber(optarg))
+                    f.set_qm_limit(atoi(optarg));
+                else {
+                    fprintf(stderr, "Argument to option -l (%s) is not a number\n", optarg);
+                    return 1;
+                }
                 break;
             case 'w':
                 write = true;
@@ -81,6 +106,7 @@ int main(int argc, char **argv){
     if(!net.process(infile))
         fprintf(stderr, "FAILED\n");
     else {
+        f.set_filename(outfile);
         bayesnet *bn = NULL;
         try {
             bn = net.get_bayesnet();
@@ -91,11 +117,10 @@ int main(int argc, char **argv){
             fprintf(stderr, "FAILED\n");
             return -1;
         }
-        f.set_filename(outfile);
 
         f.encode(bn);
         if(write)
-            f.write(outfile,true, bn);
+            f.write(outfile, bn);
 
         if(stats)
             f.stats();
