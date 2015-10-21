@@ -196,7 +196,7 @@ void bayesnet::init(dynamic_bayesnet *dbn){
     cpt_offset = (uint32_t*) malloc(sizeof(uint32_t)*(size+1));
     parent_offset = (uint32_t*) malloc(sizeof(uint32_t)*(size+1));
     child_offset = (uint32_t*) malloc(sizeof(uint32_t)*(size+1));
-    states = (uint32_t*) malloc(sizeof(uint32_t)*dbn->child_size);
+    states = (uint32_t*) malloc(sizeof(uint32_t)*size);
 
     clear_dict();
     dict = new bayesdict();
