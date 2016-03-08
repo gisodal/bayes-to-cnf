@@ -1,5 +1,5 @@
 # bayes-to-cnf
-Encode Bayesian Networks into Conjunctive Normal Form and write it to output file in DIMACS format. [STAND ALONE VERSION]
+Encode Bayesian Networks into Conjunctive Normal Form and write it to output file in DIMACS format. (STAND ALONE VERSION)
 
 ## Synopsis
 The program takes a HUGIN encoded Bayesian Network as input and encodes it into Conjunctive Normal Form with various optimizations, e.g., prime implicates, context-specific independence, determinism, etc.
