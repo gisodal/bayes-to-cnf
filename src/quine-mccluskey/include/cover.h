@@ -84,7 +84,7 @@ class cover<T,0> {
         T elements[];
 };
 
-#include "cover.th"
+#include "../src/cover.tcc"
 
 typedef cover<uint32_t,0> cover_t;
 

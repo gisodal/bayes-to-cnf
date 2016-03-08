@@ -1,0 +1,25 @@
+# project name (directory name is used if left blank)
+PROJECT =
+
+# project version
+VERSION    = 1
+SUBVERSION = 0
+PATCHLEVEL = 0
+
+# install prefix
+PREFIX = $(shell cd "$( dirname "$0" )" && cd ../.. && pwd)
+
+# library and include paths (space separated value)
+ARCH = $(shell getconf LONG_BIT)
+LIBRARY_DIR = $(PREFIX)/lib$(ARCH)
+INCLUDE_DIR = $(PREFIX)/include
+
+# static and shared libraries to be linked (space separated values)
+STATIC_LIBRARIES =
+SHARED_LIBRARIES = pthread
+
+# compiler and compiler flags
+CXXFLAGS = -std=c++11
+CFLAGS   = -w
+O        = -O3
+

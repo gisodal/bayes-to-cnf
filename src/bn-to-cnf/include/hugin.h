@@ -107,6 +107,7 @@ struct hugin {
     void print();
     reader input;
     bayesnet* get_bayesnet();
+    std::string filename;
 };
 
 #endif

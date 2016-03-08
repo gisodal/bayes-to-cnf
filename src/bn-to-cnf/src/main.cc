@@ -19,17 +19,18 @@ void help(){
     fprintf(stderr, "\nUsage:\n   ./bn-to-cnf -i <filename> [option] [...]\n\n");
     fprintf(stderr, "   Options:\n");
     fprintf(stderr, "      optimizations:\n");
+    fprintf(stderr, "         -p: Partition cnf per CPT\n");
     fprintf(stderr, "         -c: Constraints are supressed\n");
-    fprintf(stderr, "         -e: Equal probabilities is encoded\n");
+    fprintf(stderr, "         -e: Equal probabilities are encoded\n");
     fprintf(stderr, "         -d: Determinism is encoded\n");
-    fprintf(stderr, "         -s: Symplify encoding\n");
+    fprintf(stderr, "         -a: Apply boolean symplification\n");
     fprintf(stderr, "         -b: Boolean variables are not mapped\n");
     fprintf(stderr, "         -q: Quine-McCluskey (QM)\n");
     fprintf(stderr, "         -l <limit>: Limit problem size for QM\n");
     fprintf(stderr, "      other:\n");
     fprintf(stderr, "         -i <filename>: Input (HUGIN .net file)\n");
     fprintf(stderr, "         -w: Write CNF in DIMACS format to file\n");
-    fprintf(stderr, "         -p: Print stats to stdout\n");
+    fprintf(stderr, "         -s: Show stats\n");
     fprintf(stderr, "         -h: Help\n");
 }
 
@@ -40,10 +41,12 @@ int main(int argc, char **argv){
     char outfile[100];
     char ext[20] = {0};
 
-    char *opt;
     bool write = false, stats = false;
-    while ((c = getopt(argc, argv, "i:decswbhpql:")) != -1){
+    while ((c = getopt(argc, argv, "i:adecswbhpql:")) != -1){
         switch (c){
+            case 'p': // partitioned
+                f.set_optimization(cnf::opt_t::PARTITION);
+                break;
             case 'd': // determinism
                 f.set_optimization(cnf::opt_t::DETERMINISTIC_PROBABILITIES);
                 break;
@@ -56,7 +59,7 @@ int main(int argc, char **argv){
             case 'b': // bool variables are not mapped
                 f.set_optimization(cnf::opt_t::BOOL);
                 break;
-            case 's': // symplify cnf using identity property
+            case 'a': // symplify cnf using identity property
                 f.set_optimization(cnf::opt_t::SYMPLIFY);
                 break;
             case 'q': // bool variables are not mapped
@@ -73,7 +76,7 @@ int main(int argc, char **argv){
             case 'w':
                 write = true;
                 break;
-            case 'p':
+            case 's':
                 stats = true;
                 break;
             case 'i': // provide input
@@ -98,6 +101,7 @@ int main(int argc, char **argv){
         printf ("Non-option argument %s\n", argv[index]);
 
     if(infile[0] == 0){
+        help();
         fprintf(stderr, "Specify input file with -i <filename>\n");
         return 1;
     }
@@ -120,12 +124,12 @@ int main(int argc, char **argv){
 
         f.encode(bn);
         if(write)
-            f.write(outfile, bn);
+            f.write();
 
         if(stats)
             f.stats();
 
-        //f.print();
+        // f.print();
         delete bn;
     }
 

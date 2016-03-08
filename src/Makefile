@@ -1,28 +1,30 @@
-DIR  = $(shell cd "$( dirname "$0" )" && pwd)
-BNTCNF=$(DIR)/bn-to-cnf
-QM=$(DIR)/quine-mccluskey
+PROJECTS = quine-mccluskey bn-to-cnf
+OPTIONS  = all static install
+SHELL    = /bin/bash
 
 .PHONY: all clean debug build install
 
-build: all
+all:     OPTIONS = all static install
+all:     build
 
-all:
-	make -C $(QM) static build
-	make -C $(QM) install-static install-include install-bin
-	make -C $(BNTCNF) static build
-	make -C $(BNTCNF) install-static install-include install-bin
+debug:   OPTIONS = debug debug-static install
+debug:   build
 
-debug:
-	make -C $(QM) debug-static debug
-	make -C $(QM) install-static install-include install-bin
-	make -C $(BNTCNF) debug-static debug
-	make -C $(BNTCNF) install-static install-include install-bin
+install: OPTIONS = install
+install: build
 
-install:
-	make -C $(QM) install-static install-include install-bin
-	make -C $(BNTCNF) install-static install-include install-bin
+lines:
+	@for PROJECT in $(PROJECTS); do 							\
+		DIRS="$${DIRS} $${PROJECT}/src $${PROJECT}/include"; 	\
+	done; 														\
+	find $${DIRS} -maxdepth 1 -type f | xargs wc -l;
 
-clean:
-	make -C $(QM) clean
-	make -C $(BNTCNF) clean
+clean:   OPTIONS = clean
+clean:   build
+
+build:
+	@for PROJECT in $(PROJECTS); do                     		\
+		echo -e "\n==== processing $${PROJECT} ====\n"; 		\
+			$(MAKE) -C $${PROJECT} $(OPTIONS) || exit 1;       	\
+	done
 

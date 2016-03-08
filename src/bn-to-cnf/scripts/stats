@@ -1,0 +1,7 @@
+#!/bin/bash
+
+DIR=$( cd "$( dirname "$0" )/.." && pwd )
+for f in $(find "$DIR/data" -type f ); do
+    OUT=$($DIR/bin/parser $f 1 2>&1 | tail -1 )
+    echo "$(basename $f) $OUT"
+done

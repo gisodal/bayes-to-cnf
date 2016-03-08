@@ -54,6 +54,8 @@ class bayesnet {
     public:
         bayesnet();
         ~bayesnet();
+        void set_filename(const char*);
+        const char* get_filename();
         void init(dynamic_bayesnet *);
         std::string get_node_name(unsigned int);
         std::string get_node_value_name(unsigned int,unsigned int);
@@ -68,7 +70,11 @@ class bayesnet {
         void clear();
         bayesnet& operator=(bayesnet*);
         bayesnet& operator=(bayesnet&);
+        unsigned int get_nr_variables();
 
+        static bayesnet* read(char*);
+
+        inline uint32_t* get_states();
         inline uint32_t* get_parent(unsigned int);
         inline uint32_t* get_child(unsigned int);
         inline uint32_t get_states(unsigned int);
@@ -95,6 +101,7 @@ class bayesnet {
             *child_offset;
 
         bayesdict *dict;
+        std::string filename;
 };
 
 typedef dynamic_bayesnet dbn_t;
@@ -110,6 +117,10 @@ inline uint32_t* bayesnet::get_child(unsigned int i){
 
 inline uint32_t bayesnet::get_states(unsigned int i){
     return states[i];
+}
+
+inline uint32_t* bayesnet::get_states(){
+    return states;
 }
 
 inline probability_t* bayesnet::get_cpt(unsigned int i){

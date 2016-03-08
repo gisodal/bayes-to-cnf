@@ -5,62 +5,82 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <map>
+#include <set>
 #include <vector>
 #include "config.h"
 
 class bayesnet;
 
-typedef int32_t literal_value_t;
+typedef int32_t literal_t;
+typedef uint32_t uliteral_t;
+typedef uint32_t variable_t;
+typedef literal_t weight_t;
 typedef uint8_t bool_t;
 
 struct clause {
-    literal_value_t unsat;
-    std::vector<literal_value_t> literals;
-    std::vector<bool_t> sat;
+    clause() { w = -1; };
 
+    inline bool weighted(){ return w >= 0; };
+    weight_t w;
+    std::vector<literal_t> literals;
     clause& operator=(const clause &c){
         literals = c.literals;
+        w = c.w;
         return *this;
     };
 };
 
-struct literal {
-    literal_value_t unsat;
-    std::vector<literal_value_t> clauses;
-    std::vector<bool_t> negated;
-    std::vector<bool_t> sat;
+typedef std::vector<uint32_t> array_t;
 
-    literal& operator=(const literal &l){
-        clauses = l.clauses;
-        negated = l.negated;
-        return *this;
-    };
-};
+class cnf;
 
-struct expression {
-    unsigned int unsat;
-    unsigned int empty;
+class expression {
+    friend class cnf;
+    public:
+        expression();
+        std::vector<clause> clauses;
 
-    std::vector<clause> clauses;
-    std::vector<literal> literals;
+        void clear();
+        unsigned int get_nr_variables() const;
+        unsigned int get_nr_weights() const;
+        unsigned int get_nr_literals() const;
+        unsigned int get_nr_clauses() const;
+        void map_literals();
+        bool is_mapped();
 
-    void finalize();
-    void init();
+        const array_t& get_values() const;
+        const array_t& get_variable_to_literal() const;
+        const array_t& get_literal_to_variable() const;
+        const array_t& get_clause_to_variable() const;
+        expression& operator=(const expression &e);
 
-    expression& operator=(const expression &e){
-        clauses = e.clauses;
-        literals = e.literals;
-        return *this;
-    };
+        const std::vector<literal_t>& get_literal_map();
+        const std::vector<weight_t>& get_weight_map();
+        const std::vector<unsigned int>& get_variable_map();
+    private:
+        void print();
+
+        unsigned int LITERALS;
+        unsigned int WEIGHTS;
+        bool mapped;
+        array_t values;
+        array_t literal_to_variable;
+        array_t variable_to_literal;
+        array_t clause_to_variable;
+        std::vector<literal_t> literal_to_literal_map;
+        std::vector<weight_t> weight_to_weight_map;
+        std::vector<unsigned int> variable_to_variable_map;
 };
 
 typedef clause clause_t;
-typedef literal literal_t;
 typedef expression expression_t;
+
+
 
 class cnf {
     public:
         enum opt_t {
+            PARTITION,
             EQUAL_PROBABILITIES,
             DETERMINISTIC_PROBABILITIES,
             SYMPLIFY,
@@ -72,43 +92,54 @@ class cnf {
         cnf();
         ~cnf();
 
-        int read(char*);
-        int write(char*, bayesnet *bn = NULL);
+        // int read(char*);
+        int write(const char *extra = NULL);
+        void stats(FILE *file = stdout, expression_t *e = NULL);
 
-        void stats(FILE *file = stdout);
-        int condition(int);
-
-        int encode(bayesnet *bn = NULL);
+        int encode(bayesnet *bn);
         void set_encoding(int);
         void set_optimization(opt_t);
         void set_filename(char*);
         void set_qm_limit(int);
 
         void print();
+
+        const uint32_t* get_states() const;
+        const std::vector<probability_t>& get_weight_to_probability() const;
+        expression_t* get_expression(int i = -1) const;
+        unsigned int get_nr_expressions() const;
+        const std::vector<probability_t> & get_probability_to_weight() const;
+        unsigned int get_nr_variables() const;
+        unsigned int get_nr_literals() const;
+        unsigned int get_nr_weights() const;
+        bayesnet* get_bayesnet() const;
     private:
-        template <class T> void reduce(std::vector<uint32_t> &, std::vector<clause> &, std::map<uint32_t,uint32_t> &, uint32_t, uint32_t);
+        int write(const char*, int i);
+        template <class T> void reduce(std::vector<uint32_t> &, std::vector<clause> &, std::map<uint32_t,uint32_t> &);
         inline uint32_t v_to_l(uint32_t, uint32_t);
-        void fix_literal_implications();
-        void encode_constraints(bayesnet*);
-        void encode_probabilities(bayesnet*);
-        void encode_prime(bayesnet*);
+        probability_t get_probability(unsigned int);
+        probability_t get_probability(unsigned int, expression &expr);
+        probability_t get_probability(weight_t);
+
+        void encode_partitions();
+        void encode_constraints();
+        void encode_probabilities();
+        void encode_prime();
         void encode_deterministic_probabilities();
         void encode_determinism();
         void encode_equal_probabilities();
         void apply_optimization();
+
         void init();
         void clear();
-        inline probability_t get_weight(unsigned int);
-        expression_t expr;
-        unsigned int LITERALS;
-        unsigned int VARIABLES;
-        int QM_LIMIT;
+
         std::vector<unsigned int> qm_variable_count;
         unsigned int qm_eligible;
         unsigned int qm_possible;
         int encoding;
         char *filename;
         bool
+            OPT_PARTITION,
             OPT_EQUAL_PROBABILITIES,
             OPT_DETERMINISTIC_PROBABILITIES,
             OPT_SUPPRESS_CONSTRAINTS,
@@ -116,17 +147,16 @@ class cnf {
             OPT_QUINE_MCCLUSKEY,
             OPT_BOOL;
 
-        std::vector<uint32_t> values;
-        std::vector<uint32_t> literal_to_variable;
-        std::vector<uint32_t> variable_to_literal;
-        std::vector<uint32_t> clause_to_variable;
-        std::vector<int32_t> clause_to_probability;
-        std::vector<probability_t> probability_to_weight;
-};
+        int QM_LIMIT;
+        unsigned int CONSTRAINTS;
+        unsigned int VARIABLES;
+        expression_t expr;
+        std::vector<expression> exprs;
+        std::vector< std::map<unsigned int, unsigned int> > variable_expr_map;
 
-inline uint32_t cnf::v_to_l(uint32_t variable, uint32_t value){
-    return variable_to_literal[variable]+value;
-}
+        std::vector<probability_t> weight_to_probability;
+        bayesnet *bn;
+};
 
 #endif
 

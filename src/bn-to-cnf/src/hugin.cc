@@ -14,6 +14,7 @@ hugin::hugin(){
 
 bool hugin::process(string f){
     try {
+        filename = f;
         input.set_filename(f);
         if(input.open()){
             try {
@@ -279,6 +280,9 @@ bayesnet* hugin::get_bayesnet(){
         bn->init(net);
         delete net;
     } else throw hugin_error("could not allocate bayesnet");
+
+    if(bn)
+        bn->set_filename(filename.c_str());
 
     return bn;
 }

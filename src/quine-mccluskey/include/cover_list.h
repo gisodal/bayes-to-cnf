@@ -33,7 +33,7 @@ class cover_list {
         T covers[];
 };
 
-#include "cover_list.th"
+#include "../src/cover_list.tcc"
 
 #endif
 

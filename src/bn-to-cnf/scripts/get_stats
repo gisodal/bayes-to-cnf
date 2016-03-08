@@ -1,0 +1,5 @@
+#!/bin/bash
+
+for f in $(find data/ -type f -name '*.cnf'); do
+    bin/bn-to-cnf $f | tail -1
+done

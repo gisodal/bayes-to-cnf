@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <string.h>
 #include "cnf.h"
-
+#include "parser.h"
 using namespace std;
 
 dynamic_bayesnet::node* dynamic_bayesnet::get_node(std::string name){
@@ -185,6 +185,10 @@ void bayesnet::clear_dict(){
     }
 }
 
+unsigned int bayesnet::get_nr_variables(){
+    return size;
+}
+
 void bayesnet::init(dynamic_bayesnet *dbn){
     size = dbn->nodes.size();
     msg = NULL;
@@ -291,6 +295,35 @@ void bayesnet::print(){
             printf(" %lf", cpt[j]);
         printf("\n");
     }
+}
+
+bayesnet* bayesnet::read(char *infile){
+    parser<hugin> net;
+    printf("Parsing HUGIN file\n");
+    if(!net.process(infile))
+        fprintf(stderr, "Failed to parse %s\n", infile);
+    else {
+        printf("DONE\n\n");
+
+        // get bayesian network
+        bayesnet *bn = NULL;
+        try {
+            printf("Loading Bayesian Netork\n");
+            bn = net.get_bayesnet();
+            if(bn == NULL){
+                fprintf(stderr, "FAILED\n");
+                return NULL;
+            } else {
+                printf("DONE\n\n");
+                return bn;
+            }
+        } catch(throw_string_error &e){
+            fprintf(stderr, "error: %s\n", e.what());
+            fprintf(stderr, "FAILED\n");
+            return NULL;
+        }
+    }
+    return NULL;
 }
 
 void bayesnet::clear(){
@@ -441,5 +474,13 @@ bayesnet& bayesnet::operator=(bayesnet* net){
        this->deserialize(net->serialize(),true);
     }
     return *this;
+}
+
+void bayesnet::set_filename(const char *f){
+    filename = f;
+}
+
+const char* bayesnet::get_filename(){
+    return filename.c_str();
 }
 
