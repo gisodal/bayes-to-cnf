@@ -9,10 +9,11 @@ The program takes a HUGIN encoded Bayesian Network as input and encodes it into 
 
 | Option | Optimization |
 | --- |--- |
+| -p| Partition cnf per CPT|
 | -c| Constraints are suppressed|
 | -e| Equal probabilities are encoded|
 | -d| Determinism are encoded|
-| -s| Symplify encoding|
+| -a| Apply boolean symplification|
 | -b| Boolean variables are not mapped|
 | -q| Quine-McCluskey (QM)|
 | -l \<limit\>| Limit problem size for QM|
@@ -21,7 +22,7 @@ The program takes a HUGIN encoded Bayesian Network as input and encodes it into 
 | --- | --- |
 | -i \<filename\>| Input (HUGIN .net file)|
 | -w| Write CNF in DIMACS format to file|
-| -p| Print stats to stdout|
+| -s| Show stats|
 | -h| Help|
 
 ## Installation
